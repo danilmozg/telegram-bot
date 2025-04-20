@@ -1,4 +1,4 @@
-kimport asyncio
+import asyncio
 import os
 import requests
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
