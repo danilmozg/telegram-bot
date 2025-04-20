@@ -1,0 +1,67 @@
+version: '3.8'
+services:
+  bot:
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      nginx:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - bot-network
+    ports:
+      - "8443:8443"
+    volumes:
+      - ngrok-data:/ngrok_data
+
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    env_file:
+      - .env
+    ports:
+      - "80:80"
+      - "4040:4040"
+    volumes:
+      - ngrok-data:/ngrok_data
+    networks:
+      - bot-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4040/api/tunnels"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  postgres:
+    image: postgres:14
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=bot_user
+      - POSTGRES_DB=bot_db
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - bot-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "bot_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  ngrok-data:
+  postgres-data:
+
+networks:
+  bot-network:
+    driver: bridge
+    name: jobproject_bot-network
